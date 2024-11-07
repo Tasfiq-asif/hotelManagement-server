@@ -23,16 +23,37 @@ const client = new MongoClient(uri, {
   }
 });
 
+
+
+
+
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
+
+    const roomCollection = client.db('StayScape').collection('rooms')
+
+
+    app.get('/rooms', async (req, res) => {
+      try {
+        const rooms = await roomCollection.find().toArray(); // Fetch all rooms from the database
+        res.send(rooms); // Send rooms data as JSON
+      } catch (error) {
+        console.error("Error fetching rooms:", error);
+        res.status(500).json({ message: "Server Error" });
+      }
+    });
+    
+
+
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
