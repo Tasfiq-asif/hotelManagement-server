@@ -1,7 +1,9 @@
 const express = require('express');
 const cors = require('cors');
+const { ObjectId } = require('mongodb');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config();
+const roomData = require('./roomData');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -27,7 +29,10 @@ async function run() {
 
     const roomCollection = client.db('StayScape').collection('rooms');
 
-    // GET endpoint to fetch rooms with optional price filtering
+    // await roomCollection.insertMany(roomData);
+    // console.log("Room data inserted successfully");
+
+    // endpoint to fetch rooms with  price filtering
     app.get('/rooms', async (req, res) => {
       try {
         const { minPrice, maxPrice, sortOrder } = req.query;
@@ -56,6 +61,55 @@ async function run() {
         res.status(500).json({ message: "Server Error" });
       }
     });
+
+    app.get('/rooms/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+
+      
+
+      const result = await roomCollection.findOne(query);
+      res.send(result);
+  })
+
+  // Endpoint to get reviews for a specific room
+app.get('/rooms/:id/reviews', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const room = await roomCollection.findOne({ _id: new ObjectId(id) });
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+    res.json(room.reviews || []); // Return reviews or an empty array if no reviews
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Endpoint to add a review to a specific room
+app.post('/rooms/:id/reviews', async (req, res) => {
+  const { id } = req.params;
+  const newReview = req.body; // Assuming the review has `name`, `rating`, and `comment` fields
+
+  try {
+    const result = await roomCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $push: { reviews: newReview } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+    res.status(201).json({ message: "Review added successfully", review: newReview });
+  } catch (error) {
+    console.error("Error adding review:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
     
 
     await client.db("admin").command({ ping: 1 });
