@@ -28,6 +28,7 @@ async function run() {
     await client.connect();
 
     const roomCollection = client.db('StayScape').collection('rooms');
+      const bookingCollection = client.db('StayScape').collection('bookings');
 
     // await roomCollection.insertMany(roomData);
     // console.log("Room data inserted successfully");
@@ -109,6 +110,49 @@ app.post('/rooms/:id/reviews', async (req, res) => {
   }
 });
 
+// Endpoint to handle room bookings
+app.post('/rooms/:id/book', async (req, res) => {
+  const { id } = req.params;
+  const { checkInDate, checkOutDate, name, email } = req.body;
+
+  try {
+    // Calculate total nights and cost
+    const checkIn = new Date(checkInDate);
+    const checkOut = new Date(checkOutDate);
+    const totalNights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)); // Convert milliseconds to days
+
+    // Fetch room details
+    const room = await roomCollection.findOne({ _id: new ObjectId(id) });
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    const totalCost = totalNights * room.pricePerNight;
+
+    // Booking object
+    const newBooking = {
+      roomId: id,
+      roomName: room.roomDescription,
+      checkInDate,
+      checkOutDate,
+      totalNights,
+      totalCost,
+      name,
+      email,
+      createdAt: new Date(),
+    };
+
+    // Insert booking into a separate 'bookings' collection or update the 'rooms' collection
+  
+    const result = await bookingCollection.insertOne(newBooking);
+
+    // Respond with booking details
+    res.status(201).json(newBooking);
+  } catch (error) {
+    console.error("Error handling booking:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
     
 
