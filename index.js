@@ -154,7 +154,30 @@ app.post('/rooms/:id/book', async (req, res) => {
   }
 });
 
-    
+//My Bookings
+
+
+app.get('/my-bookings', async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  try {
+    const bookings = await bookingCollection.find({ email }).toArray();
+
+    if (bookings.length === 0) {
+      return res.status(404).json({ message: "No bookings found" });
+    }
+
+    res.json(bookings);
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
